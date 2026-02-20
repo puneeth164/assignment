@@ -10,31 +10,24 @@ st.set_page_config(
 )
 
 # ---------------- Load Data ----------------
-df = pd.read_csv("IPL.csv") # This line is commented out as 'df' already exists in the kernel
-
-# Ensure 'season' column is integer type for correct numerical operations
-# Handle cases where season might be a string like '2007/08'
-df['season'] = df['season'].astype(str).str.extract(r'(\d{4})').astype(int)
-
-# --- START: Placeholder data generation for Streamlit app to run without KeyErrors ---
-# This section adds dummy columns to the 'df' DataFrame to match the expectations of the Streamlit app.
-# The values in these columns are placeholders and will not provide meaningful insights for an IPL dashboard
-# without the correct underlying data. To get a functional dashboard, please load a proper IPL dataset.
-
-if "team" not in df.columns:
-    df["team"] = "Default Team" # Placeholder
-if "runs" not in df.columns:
-    df["runs"] = 0 # Placeholder
-if "wickets" not in df.columns:
-    df["wickets"] = 0 # Placeholder
-if "matches" not in df.columns:
-    df["matches"] = 1 # Placeholder
-if "player" not in df.columns:
-    df["player"] = "Default Player" # Placeholder
-if "strike_rate" not in df.columns:
-    df["strike_rate"] = 0.0 # Placeholder
-
-# --- END: Placeholder data generation ---
+try:
+    df = pd.read_csv("IPL.csv")
+    # Ensure 'season' column is integer type for correct numerical operations
+    # Handle cases where season might be a string like '2007/08'
+    df['season'] = df['season'].astype(str).str.extract(r'(\d{4})').astype(int)
+except FileNotFoundError:
+    st.warning("IPL.csv not found. Using dummy data for demonstration. Please upload IPL.csv for real data.")
+    # Create a dummy DataFrame with all expected columns to ensure the app runs
+    dummy_data = {
+        'season': [2008, 2008, 2009, 2009, 2010, 2010],
+        'team': ['Dummy Team A', 'Dummy Team B', 'Dummy Team A', 'Dummy Team B', 'Dummy Team A', 'Dummy Team B'],
+        'runs': [180, 165, 190, 175, 150, 160],
+        'wickets': [5, 7, 4, 6, 8, 5],
+        'matches': [1, 1, 1, 1, 1, 1],
+        'player': ['Dummy Player 1', 'Dummy Player 2', 'Dummy Player 1', 'Dummy Player 3', 'Dummy Player 2', 'Dummy Player 4'],
+        'strike_rate': [145.2, 130.1, 150.8, 125.6, 118.9, 133.4]
+    }
+    df = pd.DataFrame(dummy_data)
 
 # ---------------- Title & Objective ----------------
 st.title("🏏 IPL Sports Analytics Dashboard")
