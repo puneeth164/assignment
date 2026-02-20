@@ -1,140 +1,163 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-# --- START: Placeholder data generation for Streamlit app to run without KeyErrors ---
-# This section adds dummy columns to the 'df' DataFrame to match the expectations of the Streamlit app,
-# which is designed for Premier League data, while 'df' currently holds IPL data.
-# The values in these columns are placeholders and will not provide meaningful insights for a Premier League dashboard.
-# To get a functional dashboard, please load a proper Premier League dataset or adapt the dashboard code for IPL data.
-
-if "date" in df.columns:
-    # Ensure 'date' is datetime and create 'MatchDate' and 'Season'
-    df["MatchDate"] = pd.to_datetime(df["date"])
-    df["Season"] = df["MatchDate"].dt.year.astype(str)
-else:
-    # Fallback if 'date' column is also missing (unlikely given current df)
-    df["MatchDate"] = pd.to_datetime("2023-01-01") # Default date
-    df["Season"] = "2023" # Default season
-
-# Create other required columns with placeholder values
-if "HomeTeam" not in df.columns:
-    # Using existing data to make a slightly more sensible placeholder if possible, else generic
-    if "batting_team" in df.columns and not df["batting_team"].empty:
-        df["HomeTeam"] = df["batting_team"].iloc[0]
-    else:
-        df["HomeTeam"] = "Placeholder Home"
-if "FullTimeHomeGoals" not in df.columns:
-    df["FullTimeHomeGoals"] = 1 # Placeholder value
-if "FullTimeAwayGoals" not in df.columns:
-    df["FullTimeAwayGoals"] = 0 # Placeholder value
-if "FullTimeResult" not in df.columns:
-    df["FullTimeResult"] = "H" # Placeholder: Home win
-if "HomeShotsOnTarget" not in df.columns:
-    df["HomeShotsOnTarget"] = 5 # Placeholder value
-
-# --- END: Placeholder data generation ---
-
-# Page config
+# ---------------- Page Configuration ----------------
 st.set_page_config(
-    page_title="Premier League Performance Dashboard",
+    page_title="IPL Sports Analytics Dashboard",
     layout="wide"
 )
 
-# Load data
-# df = pd.read_csv("IPL.csv") # This line is removed as df is already in kernel
+# ---------------- Load Data ----------------
+# df = pd.read_csv("IPL.csv") # This line is commented out as 'df' already exists in the kernel
 
-# Sidebar filters
-st.sidebar.header("Filters")
+# Ensure 'season' column is integer type for correct numerical operations
+# Handle cases where season might be a string like '2007/08'
+df['season'] = df['season'].astype(str).str.extract(r'(\d{4})').astype(int)
 
-season = st.sidebar.selectbox(
-    "Select Season",
-    sorted(df["Season"].unique())
-)
+# --- START: Placeholder data generation for Streamlit app to run without KeyErrors ---
+# This section adds dummy columns to the 'df' DataFrame to match the expectations of the Streamlit app.
+# The values in these columns are placeholders and will not provide meaningful insights for an IPL dashboard
+# without the correct underlying data. To get a functional dashboard, please load a proper IPL dataset.
 
-home_team = st.sidebar.selectbox(
-    "Select Home Team",
-    ["All"] + sorted(df["HomeTeam"].unique())
-)
+if "team" not in df.columns:
+    df["team"] = "Default Team" # Placeholder
+if "runs" not in df.columns:
+    df["runs"] = 0 # Placeholder
+if "wickets" not in df.columns:
+    df["wickets"] = 0 # Placeholder
+if "matches" not in df.columns:
+    df["matches"] = 1 # Placeholder
+if "player" not in df.columns:
+    df["player"] = "Default Player" # Placeholder
+if "strike_rate" not in df.columns:
+    df["strike_rate"] = 0.0 # Placeholder
 
-# Apply filters
-filtered = df[df["Season"] == season]
+# --- END: Placeholder data generation ---
 
-if home_team != "All":
-    filtered = filtered[filtered["HomeTeam"] == home_team]
+# ---------------- Title & Objective ----------------
+st.title("🏏 IPL Sports Analytics Dashboard")
 
-# Title & objective
-st.title("Premier League Performance Dashboard")
 st.markdown("""
 **Analytical Objective:**
-Analyze home vs away performance and shooting efficiency in the Premier League
-to understand how match context influences outcomes across seasons.
+Analyze team and player performance trends in the Indian Premier League (IPL) across seasons
+to identify consistency, efficiency, and key performance drivers using match-level statistics.
 """)
 
-# Tabs
-tab1, tab2 = st.tabs(["League Overview", "Home vs Away Analysis"])
+# ---------------- Sidebar Filters ----------------
+st.sidebar.header("Filters")
 
-# ---------------- TAB 1 ----------------
+season_range = st.sidebar.slider(
+    "Select Season Range",
+    df["season"].min(),
+    df["season"].max(),
+    (df["season"].min(), df["season"].max())
+)
+
+selected_team = st.sidebar.selectbox(
+    "Select Team",
+    sorted(df["team"].unique())
+)
+
+# Filtered data
+filtered_df = df[
+    (df["season"].between(season_range[0], season_range[1])) &
+    (df["team"] == selected_team)
+]
+
+# ---------------- Tabs ----------------
+tab1, tab2 = st.tabs(["Season Overview", "Player Analysis"])
+
+# ==================================================
+# TAB 1 : SEASON OVERVIEW
+# ==================================================
 with tab1:
-    st.subheader("League Scoring Trends")
+    st.subheader("Season-Level Performance Overview")
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("Avg Home Goals", round(filtered["FullTimeHomeGoals"].mean(), 2))
-    col2.metric("Avg Away Goals", round(filtered["FullTimeAwayGoals"].mean(), 2))
-    col3.metric("Matches Played", len(filtered))
 
-    # Line chart
-    goals_by_date = filtered.groupby("MatchDate")[["FullTimeHomeGoals", "FullTimeAwayGoals"]].mean().reset_index()
+    col1.metric("Total Runs", int(filtered_df["runs"].sum()))
+    col2.metric("Total Wickets", int(filtered_df["wickets"].sum()))
+    col3.metric("Matches Played", int(filtered_df["matches"].sum()))
 
-    line = px.line(
-        goals_by_date,
-        x="MatchDate",
-        y=["FullTimeHomeGoals", "FullTimeAwayGoals"],
-        title="Average Goals Over Time"
+    # Line Chart – Runs by Season
+    runs_by_season = (
+        filtered_df.groupby("season")["runs"]
+        .sum()
+        .reset_index()
     )
-    st.plotly_chart(line, use_container_width=True)
 
-    # Bar chart
-    bar = px.bar(
-        filtered,
-        x="FullTimeResult",
-        title="Distribution of Match Results"
+    st.line_chart(runs_by_season.set_index("season"))
+
+    # Bar Chart – Wins / Matches by Season
+    matches_by_season = (
+        filtered_df.groupby("season")["matches"]
+        .sum()
+        .reset_index()
     )
-    st.plotly_chart(bar, use_container_width=True)
+
+    fig1, ax1 = plt.subplots()
+    sns.barplot(
+        data=matches_by_season,
+        x="season",
+        y="matches",
+        ax=ax1
+    )
+    ax1.set_title("Matches Played per Season")
+    st.pyplot(fig1)
 
     st.markdown("""
     **Interpretation:**
-    Home teams consistently score more goals on average than away teams,
-    indicating a clear home-field advantage across the selected season.
+    The line chart highlights how total runs fluctuate across seasons, revealing periods of strong
+    batting performance. The bar chart shows match participation trends, which help contextualize
+    performance volume across different IPL seasons.
     """)
 
-# ---------------- TAB 2 ----------------
+# ==================================================
+# TAB 2 : PLAYER ANALYSIS
+# ==================================================
 with tab2:
-    st.subheader("Shooting Efficiency & Match Outcomes")
+    st.subheader("Player Performance & Efficiency")
 
-    # Scatter plot
-    scatter = px.scatter(
-        filtered,
-        x="HomeShotsOnTarget",
-        y="FullTimeHomeGoals",
-        title="Home Shots on Target vs Goals",
-        trendline="ols"
+    selected_player = st.selectbox(
+        "Select Player",
+        sorted(filtered_df["player"].unique())
     )
-    st.plotly_chart(scatter, use_container_width=True)
 
-    # Heatmap
-    heatmap_data = filtered.groupby("HomeTeam")[["FullTimeHomeGoals"]].mean()
+    player_df = filtered_df[filtered_df["player"] == selected_player]
 
-    heatmap = px.imshow(
-        heatmap_data.T,
-        title="Average Home Goals by Team",
-        aspect="auto"
+    # Scatter Plot – Runs vs Strike Rate
+    fig2, ax2 = plt.subplots()
+    sns.scatterplot(
+        data=player_df,
+        x="strike_rate",
+        y="runs",
+        ax=ax2
     )
-    st.plotly_chart(heatmap, use_container_width=True)
+    ax2.set_title("Runs vs Strike Rate")
+    st.pyplot(fig2)
+
+    # Heatmap – Correlation
+    corr_data = player_df[["runs", "wickets", "matches", "strike_rate"]].corr()
+
+    fig3, ax3 = plt.subplots()
+    sns.heatmap(
+        corr_data,
+        annot=True,
+        cmap="coolwarm",
+        ax=ax3
+    )
+    ax3.set_title("Performance Metric Correlation")
+    st.pyplot(fig3)
 
     st.markdown("""
     **Interpretation:**
-    The scatter plot shows a positive relationship between shots on target
-    and goals scored, highlighting the importance of shooting efficiency.
-    The heatmap reveals which teams consistently capitalize on home advantage.
+    The scatter plot reveals the relationship between scoring output and strike efficiency,
+    highlighting players who score aggressively. The correlation heatmap identifies strong
+    associations between performance variables, offering insights into key success factors.
     """)
+
+# ---------------- Footer ----------------
+st.markdown("---")
+st.markdown("📊 *Data Source: Publicly available IPL statistics*")
