@@ -10,7 +10,7 @@ st.set_page_config(
 )
 
 # ---------------- Load Data ----------------
-# df = pd.read_csv("IPL.csv") # This line is commented out as 'df' already exists in the kernel
+df = pd.read_csv("IPL.csv") # This line is commented out as 'df' already exists in the kernel
 
 # Ensure 'season' column is integer type for correct numerical operations
 # Handle cases where season might be a string like '2007/08'
