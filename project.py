@@ -2,6 +2,39 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+# --- START: Placeholder data generation for Streamlit app to run without KeyErrors ---
+# This section adds dummy columns to the 'df' DataFrame to match the expectations of the Streamlit app,
+# which is designed for Premier League data, while 'df' currently holds IPL data.
+# The values in these columns are placeholders and will not provide meaningful insights for a Premier League dashboard.
+# To get a functional dashboard, please load a proper Premier League dataset or adapt the dashboard code for IPL data.
+
+if "date" in df.columns:
+    # Ensure 'date' is datetime and create 'MatchDate' and 'Season'
+    df["MatchDate"] = pd.to_datetime(df["date"])
+    df["Season"] = df["MatchDate"].dt.year.astype(str)
+else:
+    # Fallback if 'date' column is also missing (unlikely given current df)
+    df["MatchDate"] = pd.to_datetime("2023-01-01") # Default date
+    df["Season"] = "2023" # Default season
+
+# Create other required columns with placeholder values
+if "HomeTeam" not in df.columns:
+    # Using existing data to make a slightly more sensible placeholder if possible, else generic
+    if "batting_team" in df.columns and not df["batting_team"].empty:
+        df["HomeTeam"] = df["batting_team"].iloc[0]
+    else:
+        df["HomeTeam"] = "Placeholder Home"
+if "FullTimeHomeGoals" not in df.columns:
+    df["FullTimeHomeGoals"] = 1 # Placeholder value
+if "FullTimeAwayGoals" not in df.columns:
+    df["FullTimeAwayGoals"] = 0 # Placeholder value
+if "FullTimeResult" not in df.columns:
+    df["FullTimeResult"] = "H" # Placeholder: Home win
+if "HomeShotsOnTarget" not in df.columns:
+    df["HomeShotsOnTarget"] = 5 # Placeholder value
+
+# --- END: Placeholder data generation ---
+
 # Page config
 st.set_page_config(
     page_title="Premier League Performance Dashboard",
@@ -9,7 +42,7 @@ st.set_page_config(
 )
 
 # Load data
-df = pd.read_csv("epl_final.csv")
+# df = pd.read_csv("IPL.csv") # This line is removed as df is already in kernel
 
 # Sidebar filters
 st.sidebar.header("Filters")
