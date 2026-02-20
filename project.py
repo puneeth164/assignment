@@ -9,7 +9,7 @@ st.set_page_config(
 )
 
 # Load data
-df = pd.read_csv("/content/epl_final.csv")
+df = pd.read_csv("epl_final.csv")
 
 # Sidebar filters
 st.sidebar.header("Filters")
