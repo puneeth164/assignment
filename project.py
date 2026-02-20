@@ -1,156 +1,257 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+import altair as alt
 
-# ---------------- Page Configuration ----------------
-st.set_page_config(
-    page_title="IPL Sports Analytics Dashboard",
-    layout="wide"
-)
+# --- Data Loading and Preprocessing ---
+@st.cache_data
+def load_data(file_path):
+    """Loads the IPL dataset and performs initial preprocessing."""
+    df = pd.read_csv(file_path)
 
-# ---------------- Load Data ----------------
-try:
-    df = pd.read_csv("IPL.csv")
-    # Ensure 'season' column is integer type for correct numerical operations
-    # Handle cases where season might be a string like '2007/08'
-    df['season'] = df['season'].astype(str).str.extract(r'(\d{4})').astype(int)
-except FileNotFoundError:
-    st.warning("IPL.csv not found. Using dummy data for demonstration. Please upload IPL.csv for real data.")
-    # Create a dummy DataFrame with all expected columns to ensure the app runs
-    dummy_data = {
-        'season': [2008, 2008, 2009, 2009, 2010, 2010],
-        'team': ['Dummy Team A', 'Dummy Team B', 'Dummy Team A', 'Dummy Team B', 'Dummy Team A', 'Dummy Team B'],
-        'runs': [180, 165, 190, 175, 150, 160],
-        'wickets': [5, 7, 4, 6, 8, 5],
-        'matches': [1, 1, 1, 1, 1, 1],
-        'player': ['Dummy Player 1', 'Dummy Player 2', 'Dummy Player 1', 'Dummy Player 3', 'Dummy Player 2', 'Dummy Player 4'],
-        'strike_rate': [145.2, 130.1, 150.8, 125.6, 118.9, 133.4]
-    }
-    df = pd.DataFrame(dummy_data)
+    # Convert 'date' to datetime objects
+    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    df['match_year'] = df['date'].dt.year
 
-# ---------------- Title & Objective ----------------
-st.title("🏏 IPL Sports Analytics Dashboard")
+    # Filter out rows where 'date' could not be parsed
+    df.dropna(subset=['date'], inplace=True)
 
+    return df
+
+@st.cache_data
+def preprocess_data(df):
+    """Performs further preprocessing to create aggregated dataframes."""
+    # Create matches_df from ipl_df
+    matches_df = df.drop_duplicates(subset=['match_id']).copy()
+
+    # Handle 'No result' in match_won_by for win outcome analysis
+    matches_df['match_won_by'] = matches_df['match_won_by'].fillna('No result')
+
+    # Extract win_outcome type (by runs or by wickets)
+    def get_win_outcome_type(outcome_str):
+        if 'runs' in str(outcome_str).lower():
+            return 'by Runs'
+        elif 'wickets' in str(outcome_str).lower():
+            return 'by Wickets'
+        else:
+            return 'Other' # Handle 'No result' or other scenarios
+
+    # Apply the function to the existing 'win_outcome' column
+    matches_df['win_outcome_category'] = matches_df['win_outcome'].apply(get_win_outcome_type)
+    matches_df = matches_df[matches_df['match_won_by'] != 'No result'] # Filter out 'No result' for win analysis
+
+    # Calculate overall team wins
+    team_wins = matches_df['match_won_by'].value_counts().reset_index()
+    team_wins.columns = ['Team', 'Wins']
+
+    # Calculate matches per season
+    matches_per_season = matches_df['match_year'].value_counts().reset_index()
+    matches_per_season.columns = ['Season', 'Matches']
+    matches_per_season = matches_per_season.sort_values('Season')
+
+    # Calculate top players of the match (using 'player_of_match')
+    pom_counts = df['player_of_match'].value_counts().reset_index()
+    pom_counts.columns = ['Player', 'Awards']
+
+    # Calculate toss decision distribution
+    toss_decision_counts = matches_df['toss_decision'].value_counts().reset_index()
+    toss_decision_counts.columns = ['Decision', 'Count']
+
+    # Calculate win type distribution using the new category
+    win_type_counts = matches_df['win_outcome_category'].value_counts().reset_index()
+    win_type_counts.columns = ['Win Type', 'Count']
+
+    # Get unique teams and seasons (using 'batting_team' and 'bowling_team')
+    unique_teams = sorted(matches_df['batting_team'].unique().tolist() + matches_df['bowling_team'].unique().tolist())
+    unique_teams = sorted(list(set(unique_teams))) # Remove duplicates
+    all_seasons = sorted(matches_df['match_year'].unique().tolist())
+    unique_venues = matches_df['venue'].nunique() # Using 'venue' column
+
+    return matches_df, team_wins, matches_per_season, pom_counts, toss_decision_counts, win_type_counts, unique_teams, all_seasons, unique_venues
+
+# Load and preprocess data
+ipl_df = load_data('/content/IPL.csv')
+matches_df, team_wins, matches_per_season, pom_counts, toss_decision_counts, win_type_counts, unique_teams, all_seasons, unique_venues = preprocess_data(ipl_df)
+
+# --- Streamlit App Layout ---
+st.set_page_config(layout="wide", page_title="IPL Data Dashboard")
+
+st.title("📊 IPL Cricket Data Dashboard")
 st.markdown("""
-**Analytical Objective:**
-Analyze team and player performance trends in the Indian Premier League (IPL) across seasons
-to identify consistency, efficiency, and key performance drivers using match-level statistics.
+Welcome to the IPL Cricket Data Dashboard! Explore various statistics and insights from Indian Premier League matches.
+Use the filters on the sidebar to customize your view.
 """)
 
-# ---------------- Sidebar Filters ----------------
-st.sidebar.header("Filters")
+# --- Sidebar Filters ---
+st.sidebar.header("Filter Options")
 
-season_range = st.sidebar.slider(
-    "Select Season Range",
-    df["season"].min(),
-    df["season"].max(),
-    (df["season"].min(), df["season"].max())
+# Season filter
+selected_seasons = st.sidebar.slider(
+    "Select Seasons",
+    min_value=min(all_seasons),
+    max_value=max(all_seasons),
+    value=(min(all_seasons), max(all_seasons)),
+    step=1
+)
+selected_seasons_list = list(range(selected_seasons[0], selected_seasons[1] + 1))
+
+# Team filter
+selected_teams = st.sidebar.multiselect(
+    "Select Teams",
+    options=unique_teams,
+    default=unique_teams # Select all by default
 )
 
-selected_team = st.sidebar.selectbox(
-    "Select Team",
-    sorted(df["team"].unique())
+# Top N Players filter
+top_n_players = st.sidebar.slider(
+    "Number of Top Players of the Match",
+    min_value=5,
+    max_value=min(20, len(pom_counts)),
+    value=10,
+    step=1
 )
 
-# Filtered data
-filtered_df = df[
-    (df["season"].between(season_range[0], season_range[1])) &
-    (df["team"] == selected_team)
-]
+# --- Filter Data based on selections ---
+filtered_matches_df = matches_df[
+    (matches_df['match_year'].isin(selected_seasons_list)) &
+    (
+        matches_df['batting_team'].isin(selected_teams) |
+        matches_df['bowling_team'].isin(selected_teams) |
+        matches_df['match_won_by'].isin(selected_teams)
+    )
+].copy()
 
-# ---------------- Tabs ----------------
-tab1, tab2 = st.tabs(["Season Overview", "Player Analysis"])
+# Recalculate aggregated dataframes based on filtered matches
+filtered_team_wins = filtered_matches_df['match_won_by'].value_counts().reset_index()
+filtered_team_wins.columns = ['Team', 'Wins']
+filtered_team_wins = filtered_team_wins[filtered_team_wins['Team'].isin(selected_teams)] # Only show selected teams
 
-# ==================================================
-# TAB 1 : SEASON OVERVIEW
-# ==================================================
+filtered_matches_per_season = filtered_matches_df['match_year'].value_counts().reset_index()
+filtered_matches_per_season.columns = ['Season', 'Matches']
+filtered_matches_per_season = filtered_matches_per_season.sort_values('Season')
+
+filtered_pom_counts = ipl_df[
+    (ipl_df['match_year'].isin(selected_seasons_list)) &
+    (
+        ipl_df['batting_team'].isin(selected_teams) |
+        ipl_df['bowling_team'].isin(selected_teams)
+    )
+]['player_of_match'].value_counts().head(top_n_players).reset_index()
+filtered_pom_counts.columns = ['Player', 'Awards']
+
+filtered_toss_decision_counts = filtered_matches_df['toss_decision'].value_counts().reset_index()
+filtered_toss_decision_counts.columns = ['Decision', 'Count']
+
+filtered_win_type_counts = filtered_matches_df['win_outcome_category'].value_counts().reset_index()
+filtered_win_type_counts.columns = ['Win Type', 'Count']
+
+# --- Main Content Area (Tabs) ---
+tab1, tab2, tab3 = st.tabs(["Overview", "Match Analysis", "Player Statistics"])
+
 with tab1:
-    st.subheader("Season-Level Performance Overview")
+    st.header("Overview")
 
-    col1, col2, col3 = st.columns(3)
+    # Metric Cards
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Matches (Filtered)", filtered_matches_df.shape[0])
+    with col2:
+        st.metric("Total Teams (Selected)", len(selected_teams))
+    with col3:
+        st.metric("Total Seasons (Selected)", len(selected_seasons_list))
+    with col4:
+        st.metric("Total Venues (Overall)", unique_venues) # This metric is not filtered by design
 
-    col1.metric("Total Runs", int(filtered_df["runs"].sum()))
-    col2.metric("Total Wickets", int(filtered_df["wickets"].sum()))
-    col3.metric("Matches Played", int(filtered_df["matches"].sum()))
+    st.markdown("---")
 
-    # Line Chart – Runs by Season
-    runs_by_season = (
-        filtered_df.groupby("season")["runs"]
-        .sum()
-        .reset_index()
-    )
+    # Chart 1: Matches Played Per Season
+    if not filtered_matches_per_season.empty:
+        st.subheader("Matches Played Per Season (Filtered)")
+        chart_matches_per_season = alt.Chart(filtered_matches_per_season).mark_bar().encode(
+            x=alt.X('Season:O', title='Season'),
+            y=alt.Y('Matches:Q', title='Number of Matches'),
+            tooltip=['Season', 'Matches']
+        ).properties(
+            title='Number of Matches Played Per Season'
+        ).interactive()
+        st.altair_chart(chart_matches_per_season, use_container_width=True)
+    else:
+        st.warning("No matches found for the selected filters.")
 
-    st.line_chart(runs_by_season.set_index("season"))
+    st.markdown("---")
 
-    # Bar Chart – Wins / Matches by Season
-    matches_by_season = (
-        filtered_df.groupby("season")["matches"]
-        .sum()
-        .reset_index()
-    )
+    # Chart 2: Overall Team Wins
+    if not filtered_team_wins.empty:
+        st.subheader("Team Wins (Filtered Teams)")
+        chart_team_wins = alt.Chart(filtered_team_wins).mark_bar().encode(
+            x=alt.X('Team:N', sort='-y', title='Team'),
+            y=alt.Y('Wins:Q', title='Number of Wins'),
+            tooltip=['Team', 'Wins']
+        ).properties(
+            title='Overall Wins by Selected Teams'
+        ).interactive()
+        st.altair_chart(chart_team_wins, use_container_width=True)
+    else:
+        st.warning("No team wins data available for the selected filters.")
 
-    fig1, ax1 = plt.subplots()
-    sns.barplot(
-        data=matches_by_season,
-        x="season",
-        y="matches",
-        ax=ax1
-    )
-    ax1.set_title("Matches Played per Season")
-    st.pyplot(fig1)
-
-    st.markdown("""
-    **Interpretation:**
-    The line chart highlights how total runs fluctuate across seasons, revealing periods of strong
-    batting performance. The bar chart shows match participation trends, which help contextualize
-    performance volume across different IPL seasons.
-    """)
-
-# ==================================================
-# TAB 2 : PLAYER ANALYSIS
-# ==================================================
 with tab2:
-    st.subheader("Player Performance & Efficiency")
+    st.header("Match Analysis")
 
-    selected_player = st.selectbox(
-        "Select Player",
-        sorted(filtered_df["player"].unique())
-    )
+    col1, col2 = st.columns(2)
 
-    player_df = filtered_df[filtered_df["player"] == selected_player]
+    with col1:
+        # Chart 3: Toss Decision Distribution
+        if not filtered_toss_decision_counts.empty:
+            st.subheader("Toss Decision Distribution (Filtered)")
+            chart_toss_decision = alt.Chart(filtered_toss_decision_counts).mark_arc(outerRadius=120).encode(
+                theta=alt.Theta("Count", stack=True),
+                color=alt.Color("Decision", title="Toss Decision"),
+                tooltip=["Decision", "Count", alt.Tooltip("Count", format=".1%")]
+            ).properties(
+                title="Toss Decision Distribution"
+            )
+            st.altair_chart(chart_toss_decision, use_container_width=True)
+        else:
+            st.warning("No toss decision data available for the selected filters.")
 
-    # Scatter Plot – Runs vs Strike Rate
-    fig2, ax2 = plt.subplots()
-    sns.scatterplot(
-        data=player_df,
-        x="strike_rate",
-        y="runs",
-        ax=ax2
-    )
-    ax2.set_title("Runs vs Strike Rate")
-    st.pyplot(fig2)
+    with col2:
+        # Chart 4: Win Type Distribution
+        if not filtered_win_type_counts.empty:
+            st.subheader("Win Type Distribution (Filtered)")
+            chart_win_type = alt.Chart(filtered_win_type_counts).mark_arc(outerRadius=120).encode(
+                theta=alt.Theta("Count", stack=True),
+                color=alt.Color("Win Type", title="Win Type"),
+                tooltip=["Win Type", "Count", alt.Tooltip("Count", format=".1%")]
+            ).properties(
+                title="Win Type Distribution"
+            )
+            st.altair_chart(chart_win_type, use_container_width=True)
+        else:
+            st.warning("No win type data available for the selected filters.")
 
-    # Heatmap – Correlation
-    corr_data = player_df[["runs", "wickets", "matches", "strike_rate"]].corr()
+    st.markdown("---")
 
-    fig3, ax3 = plt.subplots()
-    sns.heatmap(
-        corr_data,
-        annot=True,
-        cmap="coolwarm",
-        ax=ax3
-    )
-    ax3.set_title("Performance Metric Correlation")
-    st.pyplot(fig3)
+    # Display detailed filtered match data
+    if not filtered_matches_df.empty:
+        st.subheader("Detailed Match Data (Filtered)")
+        st.dataframe(filtered_matches_df[['date', 'match_year', 'match_type', 'venue', 'batting_team', 'bowling_team',
+                                          'toss_winner', 'toss_decision', 'match_won_by', 'win_outcome_category', 'player_of_match']].reset_index(drop=True)) # Corrected column names
+    else:
+        st.warning("No detailed match data to display for the selected filters.")
 
-    st.markdown("""
-    **Interpretation:**
-    The scatter plot reveals the relationship between scoring output and strike efficiency,
-    highlighting players who score aggressively. The correlation heatmap identifies strong
-    associations between performance variables, offering insights into key success factors.
-    """)
 
-# ---------------- Footer ----------------
-st.markdown("---")
-st.markdown("📊 *Data Source: Publicly available IPL statistics*")
+with tab3:
+    st.header("Player Statistics")
+
+    # Chart 5: Top Players of the Match
+    if not filtered_pom_counts.empty:
+        st.subheader(f"Top {top_n_players} Players of the Match (Filtered)")
+        chart_pom = alt.Chart(filtered_pom_counts).mark_bar().encode(
+            x=alt.X('Awards:Q', title='Number of Awards'),
+            y=alt.Y('Player:N', sort='-x', title='Player'),
+            tooltip=['Player', 'Awards']
+        ).properties(
+            title=f'Top {top_n_players} Players of the Match'
+        ).interactive()
+        st.altair_chart(chart_pom, use_container_width=True)
+    else:
+        st.warning("No player of the match data available for the selected filters.")
