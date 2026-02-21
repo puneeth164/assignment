@@ -1,3 +1,4 @@
+%%writefile app.py
 import streamlit as st
 import pandas as pd
 import altair as alt
@@ -6,7 +7,8 @@ import altair as alt
 @st.cache_data
 def load_data(file_path):
     """Loads the IPL dataset and performs initial preprocessing."""
-    df = pd.read_csv(file_path)
+    # Using 'python' engine to handle potential malformed rows and specifying quotechar and escapechar
+    df = pd.read_csv(file_path, engine='python', encoding='utf-8', quotechar='"', escapechar='\\')
 
     # Convert 'date' to datetime objects
     df['date'] = pd.to_datetime(df['date'], errors='coerce')
@@ -69,7 +71,7 @@ def preprocess_data(df):
     return matches_df, team_wins, matches_per_season, pom_counts, toss_decision_counts, win_type_counts, unique_teams, all_seasons, unique_venues
 
 # Load and preprocess data
-ipl_df = load_data('/content/IPL.csv')
+ipl_df = load_data('IPL.csv')
 matches_df, team_wins, matches_per_season, pom_counts, toss_decision_counts, win_type_counts, unique_teams, all_seasons, unique_venues = preprocess_data(ipl_df)
 
 # --- Streamlit App Layout ---
@@ -234,7 +236,7 @@ with tab2:
     if not filtered_matches_df.empty:
         st.subheader("Detailed Match Data (Filtered)")
         st.dataframe(filtered_matches_df[['date', 'match_year', 'match_type', 'venue', 'batting_team', 'bowling_team',
-                                          'toss_winner', 'toss_decision', 'match_won_by', 'win_outcome_category', 'player_of_match']].reset_index(drop=True)) # Corrected column names
+                                          'toss_winner', 'toss_decision', 'match_won_by', 'win_outcome_category', 'player_of_match']].reset_index(drop=True))
     else:
         st.warning("No detailed match data to display for the selected filters.")
 
