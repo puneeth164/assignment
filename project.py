@@ -4,7 +4,7 @@ import altair as alt
 
 # --- Data Loading and Preprocessing ---
 @st.cache_data
-def load_data():
+def load_data(loaddata):
     """Loads the IPL dataset and performs initial preprocessing."""
     # Using 'python' engine to handle potential malformed rows and specifying quotechar and escapechar
     df = pd.read_csv("IPL.csv", engine='python', encoding='utf-8', quotechar='"', escapechar='\\')
