@@ -4,10 +4,10 @@ import altair as alt
 
 # --- Data Loading and Preprocessing ---
 @st.cache_data
-def load_data(file_path):
+def load_data("IPL.csv"):
     """Loads the IPL dataset and performs initial preprocessing."""
     # Using 'python' engine to handle potential malformed rows and specifying quotechar and escapechar
-    df = pd.read_csv(file_path, engine='python', encoding='utf-8', quotechar='"', escapechar='\\')
+    df = pd.read_csv("IPL.csv", engine='python', encoding='utf-8', quotechar='"', escapechar='\\')
 
     # Convert 'date' to datetime objects
     df['date'] = pd.to_datetime(df['date'], errors='coerce')
