@@ -24,21 +24,21 @@ df = get_nba_data()
 st.title("🏀 NBA Sports Analytics Dashboard")
 
 # =======================
-# 🔥 ANIMATED ANALYTICAL OBJECTIVE
+# 🎯 ANIMATED ANALYTICAL OBJECTIVE (CLEAN)
 # =======================
 st.markdown(
     """
     <style>
     .objective-box {
-        background: linear-gradient(270deg, #ff9a9e, #fad0c4, #a18cd1, #fbc2eb);
-        background-size: 600% 600%;
-        animation: gradientMove 8s ease infinite;
-        padding: 20px;
-        border-radius: 15px;
-        color: #000;
-        font-size: 18px;
+        background: linear-gradient(270deg, #e3f2fd, #bbdefb, #e3f2fd);
+        background-size: 400% 400%;
+        animation: gradientMove 10s ease infinite;
+        padding: 18px;
+        border-radius: 12px;
+        color: #0d47a1;
+        font-size: 17px;
         font-weight: 500;
-        box-shadow: 0px 4px 15px rgba(0,0,0,0.2);
+        border-left: 6px solid #1976d2;
         margin-bottom: 25px;
     }
 
@@ -50,12 +50,11 @@ st.markdown(
     </style>
 
     <div class="objective-box">
-        <h3>🎯 Analytical Objective</h3>
+        <h4>🎯 Analytical Objective</h4>
         <p>
-        This dashboard explores NBA player performance by highlighting top scorers,
-        shooting efficiency, and players who contribute across multiple areas such as
-        assists and rebounds. Interactive filters allow easy comparison across teams
-        and performance metrics.
+        This dashboard analyzes NBA player performance by examining scoring output,
+        shooting efficiency, and overall contributions such as assists and rebounds.
+        Interactive filters enable simple comparison across teams and players.
         </p>
     </div>
     """,
@@ -84,68 +83,79 @@ if selected_team != "All Teams":
 tab1, tab2 = st.tabs(["Performance Overview", "Advanced Correlation"])
 
 # =======================
-# TAB 1
+# TAB 1 – PERFORMANCE OVERVIEW
 # =======================
 with tab1:
-    st.header("Scoring & Distribution")
+    st.subheader("Scoring & Distribution")
 
-    # COLORFUL BAR CHART
+    # SIMPLE BAR CHART (ONE COLOR)
     fig_bar = px.bar(
         filtered_df.nlargest(15, "PTS"),
         x="PLAYER_NAME",
         y="PTS",
-        color="PLAYER_NAME",
         title="Top Scoring Players",
-        color_discrete_sequence=px.colors.qualitative.Bold
     )
-    fig_bar.update_layout(showlegend=False)
+    fig_bar.update_traces(marker_color="#1976d2")
+    fig_bar.update_layout(
+        xaxis_title="Player",
+        yaxis_title="Total Points"
+    )
     st.plotly_chart(fig_bar, use_container_width=True)
 
-    # COLORFUL HISTOGRAM
+    # SIMPLE HISTOGRAM (ONE COLOR)
     fig_hist = px.histogram(
         filtered_df,
         x="FG_PCT",
         nbins=20,
-        title="Field Goal % Distribution",
-        color_discrete_sequence=px.colors.sequential.Plasma
+        title="Field Goal Percentage Distribution"
+    )
+    fig_hist.update_traces(marker_color="#64b5f6")
+    fig_hist.update_layout(
+        xaxis_title="Field Goal %",
+        yaxis_title="Number of Players"
     )
     st.plotly_chart(fig_hist, use_container_width=True)
 
     st.write(
-        "Analysis: The bar chart highlights scoring leaders within the selected scope, "
-        "while the histogram shows how shooting efficiency is distributed among players."
+        "Analysis: The bar chart highlights the highest scorers within the selected "
+        "criteria, while the field goal percentage distribution shows that most players "
+        "cluster around moderate shooting efficiency levels."
     )
 
 # =======================
-# TAB 2
+# TAB 2 – ADVANCED CORRELATION
 # =======================
 with tab2:
-    st.header("Efficiency & Comparison")
+    st.subheader("Efficiency & Comparison")
 
-    # COLORFUL SCATTER PLOT
+    # SIMPLE SCATTER PLOT (ONE COLOR)
     fig_scatter = px.scatter(
         filtered_df,
         x="REB",
         y="AST",
         size="PTS",
-        color="PTS",
         hover_name="PLAYER_NAME",
-        title="Rebounds vs Assists (Colored by Points)",
-        color_continuous_scale=px.colors.sequential.Viridis
+        title="Rebounds vs Assists (Bubble size = Points)"
+    )
+    fig_scatter.update_traces(marker=dict(color="#1976d2", opacity=0.7))
+    fig_scatter.update_layout(
+        xaxis_title="Rebounds",
+        yaxis_title="Assists"
     )
     st.plotly_chart(fig_scatter, use_container_width=True)
 
-    # COLORFUL HEATMAP
+    # CLEAN HEATMAP (SOFT COLORS)
     corr = filtered_df[["PTS", "REB", "AST", "STL", "BLK"]].corr()
     fig_heatmap = px.imshow(
         corr,
         text_auto=True,
-        title="Correlation Between Performance Metrics",
-        color_continuous_scale="RdBu"
+        title="Correlation Between Key Performance Metrics",
+        color_continuous_scale="Blues"
     )
     st.plotly_chart(fig_heatmap, use_container_width=True)
 
     st.write(
-        "Analysis: Strong correlations between points, assists, and rebounds indicate "
-        "all-around players who contribute beyond scoring alone."
+        "Analysis: The correlation matrix indicates strong relationships between points, "
+        "assists, and rebounds, suggesting that players who contribute across multiple "
+        "areas tend to deliver higher overall value."
     )
