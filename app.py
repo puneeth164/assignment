@@ -13,22 +13,54 @@ st.set_page_config(page_title="NBA Analytics", layout="wide")
 # =======================
 @st.cache_data
 def get_nba_data():
-    stats = leaguedashplayerstats.LeagueDashPlayerStats(season='2023-24')
+    stats = leaguedashplayerstats.LeagueDashPlayerStats(season="2023-24")
     return stats.get_data_frames()[0]
 
 df = get_nba_data()
 
 # =======================
-# TITLE + OBJECTIVE
+# TITLE
 # =======================
 st.title("🏀 NBA Sports Analytics Dashboard")
 
-st.markdown("""
-### 🎯 Analytical Objective
-This dashboard helps explore NBA player performance by showing top scorers,
-shooting efficiency, and players who contribute across multiple areas such as
-assists and rebounds using interactive and colorful visualizations.
-""")
+# =======================
+# 🔥 ANIMATED ANALYTICAL OBJECTIVE
+# =======================
+st.markdown(
+    """
+    <style>
+    .objective-box {
+        background: linear-gradient(270deg, #ff9a9e, #fad0c4, #a18cd1, #fbc2eb);
+        background-size: 600% 600%;
+        animation: gradientMove 8s ease infinite;
+        padding: 20px;
+        border-radius: 15px;
+        color: #000;
+        font-size: 18px;
+        font-weight: 500;
+        box-shadow: 0px 4px 15px rgba(0,0,0,0.2);
+        margin-bottom: 25px;
+    }
+
+    @keyframes gradientMove {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    </style>
+
+    <div class="objective-box">
+        <h3>🎯 Analytical Objective</h3>
+        <p>
+        This dashboard explores NBA player performance by highlighting top scorers,
+        shooting efficiency, and players who contribute across multiple areas such as
+        assists and rebounds. Interactive filters allow easy comparison across teams
+        and performance metrics.
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # =======================
 # SIDEBAR FILTERS
@@ -57,7 +89,7 @@ tab1, tab2 = st.tabs(["Performance Overview", "Advanced Correlation"])
 with tab1:
     st.header("Scoring & Distribution")
 
-    # BAR CHART (COLORFUL)
+    # COLORFUL BAR CHART
     fig_bar = px.bar(
         filtered_df.nlargest(15, "PTS"),
         x="PLAYER_NAME",
@@ -69,7 +101,7 @@ with tab1:
     fig_bar.update_layout(showlegend=False)
     st.plotly_chart(fig_bar, use_container_width=True)
 
-    # HISTOGRAM (COLORFUL)
+    # COLORFUL HISTOGRAM
     fig_hist = px.histogram(
         filtered_df,
         x="FG_PCT",
@@ -90,7 +122,7 @@ with tab1:
 with tab2:
     st.header("Efficiency & Comparison")
 
-    # SCATTER PLOT (COLORFUL)
+    # COLORFUL SCATTER PLOT
     fig_scatter = px.scatter(
         filtered_df,
         x="REB",
@@ -103,7 +135,7 @@ with tab2:
     )
     st.plotly_chart(fig_scatter, use_container_width=True)
 
-    # HEATMAP (COLORFUL)
+    # COLORFUL HEATMAP
     corr = filtered_df[["PTS", "REB", "AST", "STL", "BLK"]].corr()
     fig_heatmap = px.imshow(
         corr,
