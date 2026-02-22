@@ -6,7 +6,53 @@ from nba_api.stats.endpoints import leaguedashplayerstats
 # =======================
 # PAGE CONFIG
 # =======================
-st.set_page_config(page_title="NBA Analytics", layout="wide")
+st.set_page_config(page_title="NBA Sports Analytics", layout="wide")
+
+# =======================
+# GLOBAL ANIMATION STYLES
+# =======================
+st.markdown(
+    """
+    <style>
+    /* Fade-in animation */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Title animation */
+    .dashboard-title {
+        animation: fadeIn 1.2s ease-in-out;
+        font-size: 42px;
+        font-weight: 700;
+        color: #0d47a1;
+        margin-bottom: 10px;
+    }
+
+    /* Objective animated box */
+    .objective-box {
+        animation: fadeIn 1.8s ease-in-out;
+        background: linear-gradient(270deg, #e3f2fd, #bbdefb, #e3f2fd);
+        background-size: 400% 400%;
+        animation: fadeIn 1.8s ease-in-out, gradientMove 12s ease infinite;
+        padding: 18px;
+        border-radius: 12px;
+        color: #0d47a1;
+        font-size: 16px;
+        font-weight: 500;
+        border-left: 6px solid #1976d2;
+        margin-bottom: 25px;
+    }
+
+    @keyframes gradientMove {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # =======================
 # DATA RETRIEVAL
@@ -19,42 +65,25 @@ def get_nba_data():
 df = get_nba_data()
 
 # =======================
-# TITLE
+# DASHBOARD TITLE (ANIMATED)
 # =======================
-st.title("🏀 NBA Sports Analytics Dashboard")
+st.markdown(
+    "<div class='dashboard-title'>🏀 NBA Sports Analytics Dashboard</div>",
+    unsafe_allow_html=True
+)
 
 # =======================
-# 🎯 ANIMATED ANALYTICAL OBJECTIVE (CLEAN)
+# 🎯 ANALYTICAL OBJECTIVE (ANIMATED)
 # =======================
 st.markdown(
     """
-    <style>
-    .objective-box {
-        background: linear-gradient(270deg, #e3f2fd, #bbdefb, #e3f2fd);
-        background-size: 400% 400%;
-        animation: gradientMove 10s ease infinite;
-        padding: 18px;
-        border-radius: 12px;
-        color: #0d47a1;
-        font-size: 17px;
-        font-weight: 500;
-        border-left: 6px solid #1976d2;
-        margin-bottom: 25px;
-    }
-
-    @keyframes gradientMove {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
-    </style>
-
     <div class="objective-box">
         <h4>🎯 Analytical Objective</h4>
         <p>
         This dashboard analyzes NBA player performance by examining scoring output,
         shooting efficiency, and overall contributions such as assists and rebounds.
-        Interactive filters enable simple comparison across teams and players.
+        Interactive filters allow users to explore patterns, compare teams, and
+        identify all-around player impact in a clear and intuitive way.
         </p>
     </div>
     """,
@@ -83,17 +112,16 @@ if selected_team != "All Teams":
 tab1, tab2 = st.tabs(["Performance Overview", "Advanced Correlation"])
 
 # =======================
-# TAB 1 – PERFORMANCE OVERVIEW
+# TAB 1
 # =======================
 with tab1:
     st.subheader("Scoring & Distribution")
 
-    # SIMPLE BAR CHART (ONE COLOR)
     fig_bar = px.bar(
         filtered_df.nlargest(15, "PTS"),
         x="PLAYER_NAME",
         y="PTS",
-        title="Top Scoring Players",
+        title="Top Scoring Players"
     )
     fig_bar.update_traces(marker_color="#1976d2")
     fig_bar.update_layout(
@@ -102,7 +130,6 @@ with tab1:
     )
     st.plotly_chart(fig_bar, use_container_width=True)
 
-    # SIMPLE HISTOGRAM (ONE COLOR)
     fig_hist = px.histogram(
         filtered_df,
         x="FG_PCT",
@@ -117,25 +144,24 @@ with tab1:
     st.plotly_chart(fig_hist, use_container_width=True)
 
     st.write(
-        "Analysis: The bar chart highlights the highest scorers within the selected "
-        "criteria, while the field goal percentage distribution shows that most players "
-        "cluster around moderate shooting efficiency levels."
+        "Analysis: The bar chart identifies the highest scorers within the selected "
+        "criteria, while the FG% distribution shows that most players fall within "
+        "moderate efficiency ranges, with few high-efficiency outliers."
     )
 
 # =======================
-# TAB 2 – ADVANCED CORRELATION
+# TAB 2
 # =======================
 with tab2:
     st.subheader("Efficiency & Comparison")
 
-    # SIMPLE SCATTER PLOT (ONE COLOR)
     fig_scatter = px.scatter(
         filtered_df,
         x="REB",
         y="AST",
         size="PTS",
         hover_name="PLAYER_NAME",
-        title="Rebounds vs Assists (Bubble size = Points)"
+        title="Rebounds vs Assists (Bubble Size = Points)"
     )
     fig_scatter.update_traces(marker=dict(color="#1976d2", opacity=0.7))
     fig_scatter.update_layout(
@@ -144,7 +170,6 @@ with tab2:
     )
     st.plotly_chart(fig_scatter, use_container_width=True)
 
-    # CLEAN HEATMAP (SOFT COLORS)
     corr = filtered_df[["PTS", "REB", "AST", "STL", "BLK"]].corr()
     fig_heatmap = px.imshow(
         corr,
@@ -155,7 +180,7 @@ with tab2:
     st.plotly_chart(fig_heatmap, use_container_width=True)
 
     st.write(
-        "Analysis: The correlation matrix indicates strong relationships between points, "
-        "assists, and rebounds, suggesting that players who contribute across multiple "
-        "areas tend to deliver higher overall value."
+        "Analysis: Strong correlations between scoring, assists, and rebounds indicate "
+        "that players who contribute across multiple dimensions tend to provide greater "
+        "overall value to their teams."
     )
