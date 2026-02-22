@@ -1,4 +1,5 @@
 pandas
 plotly
-streamlit
+streamlit>=1.30.0
 nba_api
+altair<5
