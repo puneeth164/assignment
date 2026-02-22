@@ -15,7 +15,13 @@ df = get_nba_data()
 # 2. APP LAYOUT
 st.set_page_config(page_title="NBA Analytics", layout="wide")
 st.title("🏀 NBA Sports Analytics Dashboard")
-st.title("this was reely good)
+st.markdown("""
+### 🎯 Analytical Objective
+This dashboard helps explore NBA player performance by showing who scores the
+most points, how efficient players are at shooting, and which players contribute
+across multiple areas like assists and rebounds. Interactive filters allow users
+to compare players and teams easily.
+""")
 
 
 # Requirements: Sidebar & Filters
