@@ -165,13 +165,13 @@ with tab2:
         "Analysis: Strong correlations between points, assists, and rebounds suggest "
         "that players who contribute across multiple areas tend to have a greater "
         "overall impact on team performance."
-        PTS – Points
+        PTS -  Points
 
-REB – Rebounds
+REB - Rebounds
 
-AST – Assists
+AST - Assists
 
-STL – Steals
+STL - Steals
 
-BLK – Blocks
+BLK - Blocks
     )
