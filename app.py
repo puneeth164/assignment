@@ -15,6 +15,8 @@ df = get_nba_data()
 # 2. APP LAYOUT
 st.set_page_config(page_title="NBA Analytics", layout="wide")
 st.title("🏀 NBA Sports Analytics Dashboard")
+st.title("this was reely good)
+
 
 # Requirements: Sidebar & Filters
 st.sidebar.header("Filter Statistics")
