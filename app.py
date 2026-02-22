@@ -47,7 +47,7 @@ st.markdown(
 # =======================
 @st.cache_data
 def get_nba_data():
-    stats = leaguedashplayerstats.LeagueDashPlayerStats(season="2025-26")
+    stats = leaguedashplayerstats.LeagueDashPlayerStats(season="2024-25")
     df = stats.get_data_frames()[0]
     return df
 
