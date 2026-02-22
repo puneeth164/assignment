@@ -54,7 +54,7 @@ def get_nba_data():
 df = get_nba_data()
 
 # =======================
-# DASHBOARD TITLE (ANIMATED)
+# DASHBOARD TITLE
 # =======================
 st.markdown(
     "<div class='title-anim'>🏀 NBA Sports Analytics Dashboard</div>",
@@ -62,7 +62,7 @@ st.markdown(
 )
 
 # =======================
-# 🎯 ANALYTICAL OBJECTIVE (HUMANIZED)
+# ANALYTICAL OBJECTIVE 
 # =======================
 st.markdown(
     """
